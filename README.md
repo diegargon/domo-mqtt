@@ -7,8 +7,12 @@ learning.
 
 
 Will use:
+
 mosquitto (running in my own linux server)
+
 paho.mqtt.c (Async)
+
 OrangePI (Raspberry PI clone)
+
 ESP8266 (probably arduino)
 
