@@ -16,6 +16,7 @@
 
 #include "MQTTAsync.h"
 #include "domo_config.h"
+#include "logger.h"
 
 #define TIMEOUT     10000L
 
