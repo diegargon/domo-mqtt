@@ -9,7 +9,7 @@ SRCS = $(wildcard $(SRCS_DIR)/*.c)
 HEADERS_DIR = src
 HEADERS = $(wildcard $(HEADERS_DIR)/*.h)
 OBJS = $(SRCS:.c=.o)
-MAIN = domo-mqtt
+MAIN = domo
 
 
 default: all

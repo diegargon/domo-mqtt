@@ -2,8 +2,8 @@
 	by Diego Garcia (diegargon)
 */
 
-#if !defined(DOMOMQTT_H)
-#define DOMOMQTT_H
+#if !defined(DOMO_H)
+#define DOMO_H
 
 #include "mqtt.h"
 

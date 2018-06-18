@@ -1,8 +1,65 @@
 /*
 	by Diego Garcia (diegargon)
 */
+#include "domo_config.h"
 #include "mqtt.h"
 
+int MQTT_Init(mqtt_context* ctx) {
+	int rc = 0;
+	
+	GKeyFile *keyfile;
+	GKeyFileFlags flags;
+	GError *error = NULL;
+	
+	keyfile = g_key_file_new ();
+	flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
+
+	if (!g_key_file_load_from_file (keyfile, CONFIG_FILE, flags, &error))
+	{
+		printf("Reading config file failed: \n");
+		exit(EXIT_FAILURE);
+	} else {
+		printf("Successful reading config file: \n");
+	}
+	
+
+	ctx->MQTT_Broker_Addr = domoCfg_getString(keyfile, "MQTT", "BrokerAddress");
+	ctx->ClientID = domoCfg_getString(keyfile, "MQTT","ClientID");
+	ctx->Username = domoCfg_getString(keyfile, "MQTT","Username");
+	ctx->Password = domoCfg_getString(keyfile, "MQTT","Password");
+	ctx->Topic = domoCfg_getString(keyfile, "MQTT","Topic");
+	ctx->Qos = domoCfg_getInt(keyfile, "MQTT","Qos");;	
+
+	MQTT_printConfig(ctx);
+
+   if( (rc = MQTTAsync_create(&ctx->client, ctx->MQTT_Broker_Addr, ctx->ClientID, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTASYNC_SUCCESS) {	
+		printf("Error MQTT_CREATE %d \n", rc);
+		exit(EXIT_FAILURE);
+	} else {
+		printf("Successful MQTT_CREATE\n");
+	}
+
+	if( (rc = MQTTAsync_setCallbacks(ctx->client, ctx, MQTT_connLost, MQTT_msgArrived, NULL))  != MQTTASYNC_SUCCESS) {
+		printf("Error settting callbacks %d\n", rc);
+		exit(EXIT_FAILURE);
+	} else {
+		printf("Successful setting MQTT callbacks\n");
+	}
+	return MQTTASYNC_SUCCESS;
+}
+
+void MQTT_printConfig(mqtt_context *ctx)
+{
+	printf("MQTT Broker Addr: %s\n", ctx->MQTT_Broker_Addr);
+	printf("MQTT ClientID: %s\n", ctx->ClientID);
+	printf("MQTT Username: %s\n", ctx->Username);
+	printf("MQTT Password: %s\n", ctx->Password);
+	printf("MQTT Qos: %d\n", ctx->Qos);	
+	printf("MQTT Topic: %s\n", ctx->Topic);
+	printf("MQTT Retained: %d\n", ctx->retained);
+	printf("MQTT msg: %s\n", ctx->msg);
+
+}
 void MQTT_onSend(void* context, MQTTAsync_successData* response)
 {
 	printf("MQTT:OnSend\n");
@@ -17,27 +74,27 @@ void MQTT_onConnectFailure(void* context, MQTTAsync_failureData* response)
 
 void MQTT_onConnect(void* context, MQTTAsync_successData* response)
 {
-
-/*
-    MQTTAsync client = (MQTTAsync)context;
+    //mqtt_context *ctx = (mqtt_context *)context;
 
     printf("MQTT:OnConnect\n");
-
-    MQTTAsync_responseOptions ropts = MQTTAsync_responseOptions_initializer;
-    ropts.context = client;
-    printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n", "test_topic", conf->ClientID, conf->QOS);
-
-    MQTTAsync_subscribe(client, "test_topic", DEF_QOS, &ropts);
-*/
+	MQTT_subscribe(context); 
 }
 
-void MQTT_subscribe(void* contesxt, char* topic, char* conf)
+void MQTT_subscribe(void* context)
 {
+	mqtt_context *ctx = (mqtt_context *)context;
+	
+    MQTTAsync_responseOptions ropts = MQTTAsync_responseOptions_initializer;
+    ropts.context = ctx;
+    printf("Subscribing to topic %s\nfor client %s using QoS %d\n\n", ctx->Topic, ctx->ClientID, ctx->Qos);
+
+    MQTTAsync_subscribe(ctx->client, ctx->Topic, ctx->Qos, &ropts);
 	
 }
 int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
 {
-	MQTTAsync client = (MQTTAsync)context;
+	//mqtt_context *ctx = (mqtt_context *)context;
+	
     int i;
     char* payloadptr;
     printf("Message arrived\n");
@@ -50,12 +107,13 @@ int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_mess
     }
     putchar('\n');
 
-	MQTT_sendMsg(client, "test", 0, 1);
-
+	MQTT_sendMsg(context, "test2", "hello", 0, 1);
+	
     MQTTAsync_freeMessage(&message);
     MQTTAsync_free(topicName);
 
-    return 1;
+    return TRUE;
+
 }
 
 void MQTT_connLost(void *context, char *cause)
@@ -65,24 +123,26 @@ void MQTT_connLost(void *context, char *cause)
     printf("     cause: %s\n", cause);
 }
 
-int MQTT_sendMsg(void* context, char* msg, int retain, int qos) {
+int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos) {
 
-    MQTTAsync client = (MQTTAsync)context;
-    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
-    MQTTAsync_message pubmsg = MQTTAsync_message_initializer;
     int rc;
-
-    printf("Sending message\n");
-
+	
+	mqtt_context *ctx = (mqtt_context *)context;
+		
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.onSuccess = MQTT_onSend;
-    opts.context = client;
+    opts.context = context;
+	
+    MQTTAsync_message pubmsg = MQTTAsync_message_initializer;
 
     pubmsg.payload = msg;
     pubmsg.payloadlen = strlen(msg);
-    pubmsg.qos = 1;
-    pubmsg.retained = 0;
+    pubmsg.qos = qos;
+    pubmsg.retained = retained;
+	
+	    printf("Sending message\n");
 
-    if ((rc = MQTTAsync_sendMessage(client, "other_topic", &pubmsg, &opts)) != MQTTASYNC_SUCCESS)
+    if ((rc = MQTTAsync_sendMessage(ctx->client, topic, &pubmsg, &opts)) != MQTTASYNC_SUCCESS)
     {
         printf("Failed to start sendMessage, return code %d\n", rc);
         exit(EXIT_FAILURE);
@@ -90,60 +150,74 @@ int MQTT_sendMsg(void* context, char* msg, int retain, int qos) {
 	return 0;
 }
 
-void MQTT_disconnect(void *context) {
-    MQTTAsync client = (MQTTAsync)context;
+void MQTT_disconnect_success(void *context, MQTTAsync_successData *response) {
+	printf("MQTT Client discconect success\n");
+	//mqtt_context *ctx = (mqtt_context *)context;
+	//MQTT_destroy(&ctx);
+}
+
+void MQTT_disconnect_failure(void *context, MQTTAsync_failureData *response) {
+	printf("MQTT Client discconect failure\n");
+	//mqtt_context *ctx = (mqtt_context *)context;
+	//MQTT_destroy(&ctx);
+}
+
+int MQTT_Disconnect(mqtt_context* ctx) {
+	printf("MQTT discconect called\n");
     MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
-    int rc;
 
-    opts.context = client;
+	opts.onSuccess = MQTT_disconnect_success;
+	opts.onFailure = MQTT_disconnect_failure;
+	opts.context = ctx;
 
-    if ((rc = MQTTAsync_disconnect(client, &opts)) != MQTTASYNC_SUCCESS)
-    {
-        printf("Failed disconnect, return code %d\n", rc);
-        exit(EXIT_FAILURE);
-    }
+    return MQTTAsync_disconnect(ctx->client, &opts);
 
 }
 
-void MQTT_destroy(void *context) 
+void MQTT_destroy(mqtt_context **ptr) 
 {
-	MQTTAsync client = (MQTTAsync)context;
-	MQTTAsync_destroy(&client);
+	printf("MQTT destroy called\n");
+	mqtt_context *ctx = (mqtt_context *)*ptr;
+	
+	if(ctx) {
+		MQTTAsync_destroy(&ctx->client);
+		g_free(ctx->MQTT_Broker_Addr);
+
+		g_free(ctx->Username);
+		g_free(ctx->Password);
+		g_free(ctx->ClientID);
+		g_free(ctx->Topic);
+		g_free(ctx->msg);
+		g_free(ctx);
+		*ptr = NULL;
+	}
+	
 }
 
+int MQTT_connect(void* context) {
 
-int MQTT_connect(void* context, Config* conf)
-{
-	int rc;
-
-    //MQTTAsync client;
-	MQTTAsync client = (MQTTAsync)context;
-
-    MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
-
+	mqtt_context *ctx = (mqtt_context *)context;
+	
     MQTTAsync_SSLOptions ssl_opts = MQTTAsync_SSLOptions_initializer;
     ssl_opts.enableServerCertAuth = 1;
-
-    MQTTAsync_create(&client, conf->MQTT_Broker_Addr, conf->ClientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+		
+    MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
 
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
 	conn_opts.onSuccess = MQTT_onConnect;
 	conn_opts.onFailure = MQTT_onConnectFailure;
-	conn_opts.context = client;
-    conn_opts.username = conf->Username;
-    conn_opts.password = conf->Password;
-
+	conn_opts.context = ctx;
+    conn_opts.username = ctx->Username;
+    conn_opts.password = ctx->Password;
     conn_opts.ssl = &ssl_opts;
 
-	MQTTAsync_setCallbacks(client, client, MQTT_connLost, MQTT_msgArrived, NULL);
+	if( MQTTAsync_connect(ctx->client, &conn_opts) != MQTTASYNC_SUCCESS) {
+		printf("Error MQTT connect\n");
+		exit(EXIT_FAILURE);
+	}
 	
-    if ((rc = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
-    {
-        printf("Failed to connect, return code %d\n", rc);
-        exit(EXIT_FAILURE);
-    }
-
-
-    return 0;
+    return MQTTASYNC_SUCCESS;
+ 
 }
+
