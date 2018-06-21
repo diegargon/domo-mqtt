@@ -5,10 +5,15 @@
 #include "logger.h"
 
 
-void log_init(char *appname) {
-	//TODO: FILTER config file	
-	setlogmask (LOG_UPTO (LOG_NOTICE));
+void log_init(char *appname, GKeyFile *conf) {
 
+	int min_level = domoCfg_getInt(conf, "LOGGING", "MIN_LOG_LEVEL");	
+	if (min_level > -1 ) 
+	{
+		log_msg(min_level -1 , "Setting min_level to %d\n", min_level);		
+		setlogmask (LOG_UPTO (min_level));
+	}
+		
 	openlog (appname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
 	log_msg(LOG_INFO, "Program started by user %d\n", getuid());

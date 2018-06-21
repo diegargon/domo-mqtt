@@ -2,17 +2,17 @@
 Domotica (Home automation)
 
 
-Begin test mqtt for home automation, here you can find only some initial test/examples while
-learning.
+I begin testing mqtt for home automation, here you can find some initial simple test files
+i got used to linux/c again and a main application
 
 
 Will use:
 
-mosquitto (running in my own linux server)
+mosquitto (MQTT broker/server running in a linux server)
 
-paho.mqtt.c (Async)
+paho.mqtt.c (Async c libray)
 
-OrangePI (Raspberry PI clone)
+OrangePI (Raspberry PI clone, programming in C)
 
-ESP8266 (probably arduino)
+ESP8266 (probably pragrammed with arduino)
 

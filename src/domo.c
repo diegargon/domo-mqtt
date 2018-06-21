@@ -1,26 +1,31 @@
 /*
-	by Diego Garcia (diegargon)
+
+	Diego Garcia (diegargon)
+
 */
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+
 
 #include "domo.h"
 
 
 int main() {
 	int ch;// rc;
+
+	GKeyFile *conf = g_key_file_new ();
 	
-	log_init(APP_NAME);
+	domoCfg_Init(conf);
+	
+	log_init(APP_NAME, conf);
+	
+	Wiring_Init(conf);
 	
 	mqtt_context *ctx = g_malloc0(sizeof(struct mqtt_context));	
-	if(MQTT_Init(ctx) == MQTTASYNC_SUCCESS) {
+	if(MQTT_Init(ctx, conf) == MQTTASYNC_SUCCESS) {
 		log_msg(LOG_INFO, "Successfull MQTT Init\n");	
 	}
 	if(MQTT_connect(ctx) == MQTTASYNC_SUCCESS) {
 		log_msg(LOG_INFO, "Successfull MQTT connect\n");
-	}	
-	
+	}		
 	
     printf("Press Q <Enter> to quit\n\n");
     do

@@ -22,8 +22,12 @@ LOG_DEBUG	7
 #include <string.h> 
 #include <unistd.h>
 #include <syslog.h>
+
+#include "domo_config.h"
  
-void log_init(char* appname);
+
+
+void log_init(char* appname, GKeyFile *conf);
 void log_msg(int level, char * format, ...);
 void log_close();
 

@@ -1,34 +1,21 @@
 /*
-	by Diego Garcia (diegargon)
+
+	Diego Garcia (diegargon)
+	
 */
-#include "domo_config.h"
+
 #include "mqtt.h"
 
-int MQTT_Init(mqtt_context* ctx) {
+int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 	int rc = 0;
-	
-	GKeyFile *keyfile;
-	GKeyFileFlags flags;
-	GError *error = NULL;
-	
-	keyfile = g_key_file_new ();
-	flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
 
-	if (!g_key_file_load_from_file (keyfile, CONFIG_FILE, flags, &error))
-	{
-		log_msg(LOG_ERR, "Reading config file failed: \n");
-		exit(EXIT_FAILURE);
-	} else {
-		log_msg(LOG_INFO, "Successful reading config file: \n");
-	}
 	
-
-	ctx->MQTT_Broker_Addr = domoCfg_getString(keyfile, "MQTT", "BrokerAddress");
-	ctx->ClientID = domoCfg_getString(keyfile, "MQTT","ClientID");
-	ctx->Username = domoCfg_getString(keyfile, "MQTT","Username");
-	ctx->Password = domoCfg_getString(keyfile, "MQTT","Password");
-	ctx->Topic = domoCfg_getString(keyfile, "MQTT","Topic");
-	ctx->Qos = domoCfg_getInt(keyfile, "MQTT","Qos");;	
+	ctx->MQTT_Broker_Addr = domoCfg_getString(conf, "MQTT", "BrokerAddress");
+	ctx->ClientID = domoCfg_getString(conf, "MQTT","ClientID");
+	ctx->Username = domoCfg_getString(conf, "MQTT","Username");
+	ctx->Password = domoCfg_getString(conf, "MQTT","Password");
+	ctx->Topic = domoCfg_getString(conf, "MQTT","Topic");
+	ctx->Qos = domoCfg_getInt(conf, "MQTT","Qos");;	
 
 	MQTT_printConfig(ctx);
 

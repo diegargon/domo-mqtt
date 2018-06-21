@@ -16,7 +16,6 @@
 
 #include "MQTTAsync.h"
 #include "domo_config.h"
-#include "logger.h"
 
 #define TIMEOUT     10000L
 
@@ -32,7 +31,7 @@ typedef struct mqtt_context{
 	int retained;	
 } mqtt_context;
 
-int MQTT_Init(mqtt_context* ctx);
+int MQTT_Init(mqtt_context* ctx, GKeyFile *keyfile);
 void MQTT_printConfig(mqtt_context *ctx);
 int MQTT_connect(void* context);
 int MQTT_Disconnect(mqtt_context *ctx);

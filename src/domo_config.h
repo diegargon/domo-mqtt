@@ -1,5 +1,6 @@
 /*
-	by Diego Garcia Gonzalez (diegargon)
+
+	Diego Garcia Gonzalez (diegargon)
 	
 	Config file:
 	[MQTT]
@@ -21,9 +22,14 @@
 #define CONFIG_FILE "/etc/domo.conf"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <glib.h>
+#include "logger.h"
 
+
+void domoCfg_Init(GKeyFile* keyfile);
 char* domoCfg_getString(GKeyFile* keyfile, char *section, char *key);
 int domoCfg_getInt(GKeyFile* keyfille, char* section, char* key);
+char** domoCfg_getStringList(GKeyFile *keyfile, const char *section, const char* key, gsize *size);
 
 #endif
