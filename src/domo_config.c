@@ -11,16 +11,14 @@ void domoCfg_Init(GKeyFile *keyfile) {
 	
 	GKeyFileFlags flags;
 	GError *error = NULL;
-		
+	
 	flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
 
 	if (!g_key_file_load_from_file (keyfile, CONFIG_FILE, flags, &error))
 	{
-		log_msg(LOG_ERR, "Reading config file failed: \n");
+		printf("Reading config file failed \n");
 		exit(EXIT_FAILURE);
-	} else {
-		log_msg(LOG_INFO, "Successful reading config file: \n");
-	}
+	} 
 
 }
 
@@ -39,5 +37,12 @@ int domoCfg_getInt(GKeyFile* keyfile, char* section, char* key) {
 	} else {
 		return -1;
 	}
+}
+gsize domCfg_getNumElementsList( GKeyFile* keyfile, char* section, char* key ) {
+	gsize size = 0;
+
+	g_key_file_get_string_list(keyfile, section, key, &size, NULL);
+
+	return size;
 }
 

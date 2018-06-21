@@ -7,7 +7,9 @@
 #include "wiring.h"
 
 void Wiring_Init(GKeyFile *conf) {
-	int i;
+
+/*	
+	int i;	
 	char **sections;
 	gsize size = 0;
 	
@@ -17,5 +19,5 @@ void Wiring_Init(GKeyFile *conf) {
 	for (i=0 ; i < size; i++) {
 		printf("Section [%d] its %s\n", i, sections[i]);
 	}
-	
-}
+*/
+}	

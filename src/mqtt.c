@@ -8,7 +8,7 @@
 
 int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 	int rc = 0;
-
+	gsize SubsSize;
 	
 	ctx->MQTT_Broker_Addr = domoCfg_getString(conf, "MQTT", "BrokerAddress");
 	ctx->ClientID = domoCfg_getString(conf, "MQTT","ClientID");
@@ -16,7 +16,14 @@ int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 	ctx->Password = domoCfg_getString(conf, "MQTT","Password");
 	ctx->Topic = domoCfg_getString(conf, "MQTT","Topic");
 	ctx->Qos = domoCfg_getInt(conf, "MQTT","Qos");;	
-
+	
+	char **subs = domoCfg_getStringList(conf, "MQTT", "SubsTopics", &SubsSize);
+	ctx->SubsSize = SubsSize;
+	
+	for (int i = 0; i < SubsSize; i++) {
+		ctx->Subs[i] = strdup(subs[i]);
+    }
+	
 	MQTT_printConfig(ctx);
 
    if( (rc = MQTTAsync_create(&ctx->client, ctx->MQTT_Broker_Addr, ctx->ClientID, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTASYNC_SUCCESS) {	
@@ -37,6 +44,7 @@ int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 
 void MQTT_printConfig(mqtt_context *ctx)
 {
+	
 	log_msg(LOG_INFO, "MQTT Broker Addr: %s\n", ctx->MQTT_Broker_Addr);
 	log_msg(LOG_INFO, "MQTT ClientID: %s\n", ctx->ClientID);
 	log_msg(LOG_INFO, "MQTT Username: %s\n", ctx->Username);
@@ -45,6 +53,10 @@ void MQTT_printConfig(mqtt_context *ctx)
 	log_msg(LOG_INFO, "MQTT Topic: %s\n", ctx->Topic);
 	log_msg(LOG_INFO, "MQTT Retained: %d\n", ctx->retained);
 	log_msg(LOG_INFO, "MQTT msg: %s\n", ctx->msg);
+	log_msg(LOG_INFO, "MQTT SubsSize %d\n",  ctx->SubsSize);
+	for (int i = 0; i < ctx->SubsSize; i++) {
+		log_msg(LOG_INFO, "MQTT Subs values %s\n", ctx->Subs[i]);
+    }
 
 }
 void MQTT_onSend(void* context, MQTTAsync_successData* response)
@@ -60,10 +72,15 @@ void MQTT_onConnectFailure(void* context, MQTTAsync_failureData* response)
 
 void MQTT_onConnect(void* context, MQTTAsync_successData* response)
 {
-    //mqtt_context *ctx = (mqtt_context *)context;
+    mqtt_context *ctx = (mqtt_context *)context;
 
     log_msg(LOG_INFO, "(MQTT OnConnect)\n");
-	MQTT_subscribe(context); 
+	if (ctx->SubsSize > 1) {
+		MQTT_subscribeMany(context); 
+	} else if (ctx->SubsSize == 1) {		
+		MQTT_subscribe(context);
+	}
+		
 }
 
 void MQTT_subscribe(void* context)
@@ -71,12 +88,44 @@ void MQTT_subscribe(void* context)
 	mqtt_context *ctx = (mqtt_context *)context;
 	
     MQTTAsync_responseOptions ropts = MQTTAsync_responseOptions_initializer;
+	ropts.onSuccess = MQTT_onSubscribeSuccess;
+	ropts.onFailure = MQTT_onSubscribeFailure;
     ropts.context = ctx;
     log_msg(LOG_INFO, "Subscribing to topic %s for client %s using QoS %d\n\n", ctx->Topic, ctx->ClientID, ctx->Qos);
 
-    MQTTAsync_subscribe(ctx->client, ctx->Topic, ctx->Qos, &ropts);
+    MQTTAsync_subscribe(ctx, ctx->Topic, ctx->Qos, &ropts);
 	
 }
+
+void MQTT_subscribeMany(void* context)
+{
+	int i;
+	
+	mqtt_context *ctx = (mqtt_context *)context;
+	
+    MQTTAsync_responseOptions ropts = MQTTAsync_responseOptions_initializer;
+	
+    ropts.context = ctx;
+    log_msg(LOG_INFO, "Subscribing many topics\n");
+
+	//TODO: Qos per subs
+	int QosList[ctx->SubsSize];
+	
+	for (i=0 ; i < ctx->SubsSize; i++) {
+		QosList[i] =  ctx->Qos;
+	}
+	
+    MQTTAsync_subscribeMany(ctx, ctx->SubsSize, ctx->Subs, QosList, &ropts);
+	
+}
+
+void MQTT_onSubscribeSuccess(void *context, MQTTAsync_successData *response) {
+	log_msg(LOG_INFO, "Subscribe success\n");
+}
+void MQTT_onSubscribeFailure(void *context, MQTTAsync_failureData *response) {
+	log_msg(LOG_INFO, "Subscribe fail [ %d ] -> %s \n", response->code, response->message);
+}
+
 int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
 {
 	//mqtt_context *ctx = (mqtt_context *)context;
@@ -158,6 +207,20 @@ int MQTT_Disconnect(mqtt_context* ctx) {
 
     return MQTTAsync_disconnect(ctx->client, &opts);
 
+}
+
+void MQTT_unsubscribe(mqtt_context *ctx, char* topic) {
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.context = ctx->client;	
+	MQTTAsync_unsubscribe (ctx->client, topic, &opts);
+	
+}
+void MQTT_unsubscribeMany(mqtt_context *ctx, int count, char **topic) {
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.context = ctx->client;	
+	MQTTAsync_unsubscribeMany (ctx->client, count, topic, &opts);
+	
+	
 }
 
 void MQTT_destroy(mqtt_context **ptr) 

@@ -16,6 +16,7 @@
 
 #include "MQTTAsync.h"
 #include "domo_config.h"
+#include "logger.h"
 
 #define TIMEOUT     10000L
 
@@ -28,7 +29,9 @@ typedef struct mqtt_context{
 	char *Topic;
 	char *msg;
 	int Qos;
-	int retained;	
+	int retained;
+	int SubsSize;
+	char *Subs[];
 } mqtt_context;
 
 int MQTT_Init(mqtt_context* ctx, GKeyFile *keyfile);
@@ -36,6 +39,11 @@ void MQTT_printConfig(mqtt_context *ctx);
 int MQTT_connect(void* context);
 int MQTT_Disconnect(mqtt_context *ctx);
 void MQTT_subscribe(void* context);
+void MQTT_subscribeMany(void* context);
+void MQTT_onSubscribeSuccess(void *context, MQTTAsync_successData *response);
+void MQTT_onSubscribeFailure(void *context, MQTTAsync_failureData *response);
+void MQTT_unsubscribe(mqtt_context *ctx, char* topic);
+void MQTT_unsubscribeMany(mqtt_context *ctx, int count, char **topic);
 int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos);
 void MQTT_destroy(mqtt_context **ctx);
 void MQTT_connLost(void* context, char *cause);

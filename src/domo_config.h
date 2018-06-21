@@ -24,12 +24,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib.h>
-#include "logger.h"
+#include <string.h>
+
 
 
 void domoCfg_Init(GKeyFile* keyfile);
 char* domoCfg_getString(GKeyFile* keyfile, char *section, char *key);
 int domoCfg_getInt(GKeyFile* keyfille, char* section, char* key);
 char** domoCfg_getStringList(GKeyFile *keyfile, const char *section, const char* key, gsize *size);
+gsize domCfg_getNumElementsList( GKeyFile* keyfile, char* section, char* key );
 
 #endif
