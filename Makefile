@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS  = -Wall -g
 LFLAGS = `pkg-config --cflags glib-2.0`
-LIBS = -lpaho-mqtt3as `pkg-config --libs glib-2.0`
+LIBS = -lpaho-mqtt3as `pkg-config --libs glib-2.0` -lwiringPi -lwiringPiDev -lpthread -lm
 INCLUDES = 
 BUILD_DIR = build
 SRCS_DIR = src

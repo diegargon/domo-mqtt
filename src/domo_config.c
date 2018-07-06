@@ -46,3 +46,11 @@ gsize domCfg_getNumElementsList( GKeyFile* keyfile, char* section, char* key ) {
 	return size;
 }
 
+
+int domoCfg_hasGroup(GKeyFile* keyfile, char* group) {
+	if (g_key_file_has_group (keyfile, group)) {
+		return 1;
+	} 
+	
+	return 0;
+}

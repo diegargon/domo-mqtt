@@ -4,13 +4,15 @@
 
 #include "logger.h"
 
+int LogToTTY = 0;
 
 void log_init(char *appname, GKeyFile *conf) {
 
+	LogToTTY = domoCfg_getInt(conf, "LOGGING", "LogToTTY");	
 	int min_level = domoCfg_getInt(conf, "LOGGING", "MIN_LOG_LEVEL");	
 	if (min_level > -1 ) 
 	{
-		log_msg(min_level -1 , "Setting min_level to %d\n", min_level);		
+		log_msg(min_level -1 , "Setting loggin min_level to %d\n", min_level);		
 		setlogmask (LOG_UPTO (min_level));
 	}
 		
@@ -48,6 +50,9 @@ void log_msg(int level, char * format, ...) {
 	strcat(new_text, msg);
 	
 	syslog(level, new_text);
+	if (LogToTTY) {
+		printf("%s", new_text);
+	}
 	
 	va_end(args);
 	free(msg);

@@ -16,3 +16,20 @@ OrangePI (Raspberry PI clone, programming in C)
 
 ESP8266 (probably pragrammed with arduino)
 
+
+# requeriments
+
+WiringPI, i have a orange pi H3 that work
+git clone https://github.com/zhaolei/WiringOP.git -b h3 
+glib-2.0
+
+
+# Use and compile
+
+Compile:
+$ make
+Use:
+$ build/domo
+
+by default the app search for config file in /etc/domo.conf
+in /examples/ you can found a example config file.

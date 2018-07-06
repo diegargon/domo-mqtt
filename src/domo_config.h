@@ -33,5 +33,6 @@ char* domoCfg_getString(GKeyFile* keyfile, char *section, char *key);
 int domoCfg_getInt(GKeyFile* keyfille, char* section, char* key);
 char** domoCfg_getStringList(GKeyFile *keyfile, const char *section, const char* key, gsize *size);
 gsize domCfg_getNumElementsList( GKeyFile* keyfile, char* section, char* key );
+int domoCfg_hasGroup(GKeyFile *keyfile, char* group);
 
 #endif

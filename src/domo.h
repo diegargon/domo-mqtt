@@ -10,6 +10,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include<unistd.h>
+#include<signal.h>
+
 
 #include "domo_config.h"
 #include "mqtt.h"
@@ -18,5 +21,8 @@
 
 #define APP_VERSION	0.1
 #define APP_NAME	"domo"
+
+
+struct sigaction old_action;
 
 #endif

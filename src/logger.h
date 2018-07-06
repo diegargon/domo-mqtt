@@ -31,4 +31,5 @@ void log_init(char* appname, GKeyFile *conf);
 void log_msg(int level, char * format, ...);
 void log_close();
 
+
 #endif
