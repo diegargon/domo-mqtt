@@ -66,7 +66,7 @@ int main() {
 		//if (loop == 8132 ) {
 		//	loop = 0;
 		//}
-		WiringPinMonitor(ctx, pinConf, NumPins);
+		WiringPinMonitor(ctx);
 		usleep(1000000);
 	}
 	

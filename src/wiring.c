@@ -62,6 +62,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		
 		if ( strcmp(domoCfg_getString(conf, pins[i], "Mode"), "input") == 0 ) 
 		{
+			pinMode(pinConf[i].pin, INPUT);
 			pinConf[i].pinMode = PIN_INPUT;
 		
 			// SETUP INTERNAL PULLS		
@@ -79,6 +80,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 			
 		} 
 		else if ( strcmp(domoCfg_getString(conf, pins[i], "Mode"), "output") == 0) {
+			pinMode(pinConf[i].pin, OUTPUT);
 			pinConf[i].pinMode = PIN_OUTPUT;
 			// SETUP PIN OUTPUT INITIAL STATUS, DEFAULT 0
 			int pinInitState = domoCfg_getInt(conf, pins[i], "PinInitState");
@@ -107,6 +109,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		pinConf[i].pinState0 = domoCfg_getString(conf, pins[i], "PinState0");
 		pinConf[i].pinState1 = domoCfg_getString(conf, pins[i], "PinState1");
 		pinConf[i].QoS = domoCfg_getInt(conf, pins[i], "QoS");
+		pinConf[i].pinPrevState = -1;
 		if (pinConf[i].QoS == -1 ){
 			pinConf[i].QoS = DefQoS;
 		}
@@ -127,6 +130,7 @@ void  printPinConfig(pinConfig *pinConf, int size)
 		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Mode: %d\n", pinConf[i].pinMode);
 		log_msg(LOG_DEBUG, "[PINCONFIG] Pull Mode: %d\n", pinConf[i].pullMode);	
 		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Initial State: %d\n", pinConf[i].pinInitState);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Prev State: %d\n", pinConf[i].pinPrevState);
 		log_msg(LOG_DEBUG, "[PINCONFIG] Publish topic: %s\n", pinConf[i].pub_topic);
 		log_msg(LOG_DEBUG, "[PINCONFIG] Publish retained: %d\n", pinConf[i].pub_retained);
 		log_msg(LOG_DEBUG, "[PINCONFIG] QoS: %d\n", pinConf[i].QoS);
@@ -142,22 +146,79 @@ void  printPinConfig(pinConfig *pinConf, int size)
 
 
 
-void WiringPinMonitor(void *context, pinConfig *pinConf, int size) {
+void WiringPinMonitor(void *context) {
 	int i;
 	
-	//mqtt_context *ctx = (mqtt_context *)context;
+	mqtt_context *ctx = (mqtt_context *)context;
 	
 	//log_msg(LOG_DEBUG, "WiringLoop\n");
 	
-	for (i=0; i < size ; i++) 
+	for (i=0; i < ctx->NumPins ; i++) 
 	{
 		//log_msg(LOG_DEBUG, "PIN %d -> status %d\n",  pinConf[i].pin, digitalRead(pinConf[i].pin));
 		
-		if ( (pinConf[i].pinMode == OUTPUT) && (pinConf[i].subs_topic != NULL) && (pinConf[i].subscribed == 0) )
+		/*
+		*	OUTPUT SUBSCRIBE
+		*/
+		
+		if ( (ctx->pinConf[i].pinMode == OUTPUT) && (ctx->pinConf[i].subs_topic != NULL) && (ctx->pinConf[i].subscribed == 0) )
 		{
-			MQTT_subscribe(context, pinConf[i].subs_topic, pinConf[i].QoS );
-			pinConf[i].subscribed = 1; //TODO doit when successfull subscribe			
+			MQTT_subscribe(context, ctx->pinConf[i].subs_topic, ctx->pinConf[i].QoS );
+			ctx->pinConf[i].subscribed = 1; //TODO doit when successfull subscribe			
 		}
+		
+		/*
+		* INPUT PIN PUBLISH ON CHANGE
+		*/
+		
+		if ( (ctx->pinConf[i].pinMode == INPUT) && (ctx->pinConf[i].pub_topic != NULL) )
+		{
+			
+			if ( ( ctx->pinConf[i].pub_topic != NULL) && 
+				((ctx->pinConf[i].pinPrevState == -1) 
+				|| ( ctx->pinConf[i].pinPrevState != digitalRead(ctx->pinConf[i].pin) ) )				
+			) {	
+				log_msg(LOG_INFO, "Pin %d , change or setting state\n", ctx->pinConf[i].pin);
+				char msg[10];
+				int qos = ctx->DefaultQoS;
+				int retained = 0;
+				
+				if( ctx->pinConf[i].QoS != -1 && 
+					((ctx->pinConf[i].QoS == 0) || (ctx->pinConf[i].QoS == 1))
+				)
+				{
+					qos = ctx->pinConf[i].QoS;
+				}
+				if(ctx->pinConf[i].pub_retained != -1 && 
+					((ctx->pinConf[i].pub_retained == 0) || (ctx->pinConf[i].pub_retained == 1))
+					)
+				{
+					retained = ctx->pinConf[i].pub_retained;
+				}					
+					
+				
+				if ( strcmp(ctx->pinConf[i].pubValue, "PinState") == 0)
+				{
+					sprintf(msg, "%d", digitalRead(ctx->pinConf[i].pin) );
+				} else if ( strcmp(ctx->pinConf[i].pubValue, "PinStateVar") == 0 ) {
+					if (digitalRead(ctx->pinConf[i].pin)) {
+						sprintf(msg, "%s", ctx->pinConf[i].pinState1);
+					} else {
+						sprintf(msg, "%s", ctx->pinConf[i].pinState0);
+					}
+				} else {
+					log_msg(LOG_ERR, "Error, pubValue on pin %d not set\n", ctx->pinConf[i].pin);
+					exit(EXIT_FAILURE);
+				}
+				MQTT_sendMsg(ctx, ctx->pinConf[i].pub_topic, msg, retained, qos);
+				ctx->pinConf[i].pinPrevState = digitalRead(ctx->pinConf[i].pin);
+			}	
+		}
+		
+		/*
+		*
+		*/
+		
 
 	}
 	

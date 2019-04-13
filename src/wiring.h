@@ -37,7 +37,7 @@ typedef struct pinConfig {
 	char *pinState1;
 	char *subs_topic;
 	int subscribed;
-	char *logic; // INPUT (PUSH or SWITCH)	
+	char *logic; // INPUT (PUSHPIN or SWITCHPIB)	
 } pinConfig;
 
 
@@ -46,6 +46,7 @@ typedef struct pinConfig {
 
 int WiringInit(GKeyFile *conf, pinConfig *pinConf, int pinConfSize);
 
-void WiringPinMonitor(void *context, pinConfig *pinConf, int size);
+void WiringPinMonitor(void *context);
 void  printPinConfig(pinConfig *pinConf, int size);
+
 #endif

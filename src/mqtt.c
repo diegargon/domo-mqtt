@@ -186,12 +186,40 @@ int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_mess
     char* payloadptr;
 		
 		
-	/* DEBUG
+/*
 	for (i = 0; i < ctx->NumPins; i++) {
 		log_msg(LOG_DEBUG,"PINCONF %d\n", ctx->pinConf[i].pin);
-	}	
-	*/
+	}
 	
+	for (i = 0; i < ctx->NumPins; i++) {
+		log_msg(LOG_DEBUG,"PINCONF %d, %s\n", i, ctx->pinConf[i].subs_topic);
+	}	
+*/
+	for (i = 0; i < ctx->NumPins; i++) 
+	{
+		if ( ctx->pinConf[i].subs_topic != NULL && topicName != NULL) 
+		{
+			if ( (strcmp(topicName, ctx->pinConf[i].subs_topic) == 0) ) 
+			{
+				log_msg(LOG_DEBUG,"PINCONF, %d, %d\n",i , ctx->pinConf[i].pin);
+				if ( (ctx->pinConf[i].logic != NULL)   
+					&& (strcmp(ctx->pinConf[i].logic , "PushPin") == 0)
+				)
+				{
+					log_msg(LOG_DEBUG,"PINCONF, %d, %d PushPin\n",i , ctx->pinConf[i].pin);
+					int pinState = digitalRead(ctx->pinConf[i].pin);
+					digitalWrite(ctx->pinConf[i].pin, !pinState);
+					usleep(100000);
+					digitalWrite(ctx->pinConf[i].pin, pinState);
+				} else {
+					log_msg(LOG_DEBUG,"PINCONF, %d, %d SwitchPin\n",i , ctx->pinConf[i].pin);
+					int pinState = digitalRead(ctx->pinConf[i].pin);
+					digitalWrite(ctx->pinConf[i].pin, !pinState);				
+				}
+			}
+		}
+	}
+
     printf("Message arrived\n");
     printf("\t topic: %s\n", topicName);
     printf("\t message: ");
@@ -209,7 +237,6 @@ int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_mess
     MQTTAsync_free(topicName);
 
     return TRUE;
-
 }
 
 void MQTT_connLost(void *context, char *cause)
@@ -221,11 +248,12 @@ void MQTT_connLost(void *context, char *cause)
 }
 
 int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos) {
-
+	log_msg(LOG_INFO, "Sending message:\n topic: %s,\n %s,\n %d,\n %d\n", topic, msg, retained, qos);
     int rc;
 	
 	mqtt_context *ctx = (mqtt_context *)context;
-		
+	
+	
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.onSuccess = MQTT_onSend;
     opts.context = context;
@@ -237,7 +265,7 @@ int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos) {
     pubmsg.qos = qos;
     pubmsg.retained = retained;
 	
-	log_msg(LOG_INFO, "Sending message\n");
+	
 
     if ((rc = MQTTAsync_sendMessage(ctx->client, topic, &pubmsg, &opts)) != MQTTASYNC_SUCCESS)
     {
