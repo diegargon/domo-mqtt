@@ -7,9 +7,9 @@
 
 #include "domo.h"
 
-
-
 int main() {
+	
+	int reconnect_time = RECONNECT_TIME;
 	
 	//unsigned long int SubsNcount = 0;
 	GKeyFile *conf = g_key_file_new ();
@@ -35,12 +35,16 @@ int main() {
 	MQTT_Init(ctx, conf);	
 	MQTT_connect(ctx);
 
-	
-
-	while(ctx->Connected == 0) 
+	while (!MQTTAsync_isConnected(ctx->client)) 
 	{
 		log_msg(LOG_DEBUG,"MQTT_connect:Waiting to connected.\n");
-		usleep(500000);
+		sleep(reconnect_time);
+		if(ctx->Connected == 0) {
+			MQTT_connect(ctx);
+			if (reconnect_time < 5) {
+				reconnect_time ++;
+			}
+		}		
 	}
 
 	/*
@@ -59,7 +63,7 @@ int main() {
 	
 	//int loop = 0;
 	
-	for(;;) {
+	while(1) {
 		
 		//printf("\033[2J");  //clear
 		//printf("Loop %d\n", loop++);
@@ -67,12 +71,23 @@ int main() {
 		//	loop = 0;
 		//}
 		WiringPinMonitor(ctx);
-		usleep(1000000);
+		if(ctx->Connected == 0) {
+			sleep(reconnect_time);
+			if (!MQTTAsync_isConnected(ctx->client)) {
+				MQTT_connect(ctx);
+				if (reconnect_time < 5) {
+					reconnect_time ++;
+				}
+			}		
+		} else {
+			reconnect_time = RECONNECT_TIME;
+		}
+		usleep(20 * 10000);
 	}
-	
-	
 	//usleep(3000000);
-	MQTT_Disconnect(ctx, pinConf, NumPins);
+	MQTT_cancel_subs(ctx, pinConf, NumPins);
+	MQTT_Disconnect(ctx);
 	MQTT_destroy(&ctx);
+	
 	return 0;
 }

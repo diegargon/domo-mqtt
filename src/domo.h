@@ -7,6 +7,8 @@
 #if !defined(DOMO_H)
 #define DOMO_H
 
+#define RECONNECT_TIME 2
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +25,6 @@
 #define APP_NAME	"domo"
 
 
-struct sigaction old_action;
+//struct sigaction old_action;
 
 #endif
