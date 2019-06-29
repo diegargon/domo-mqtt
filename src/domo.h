@@ -12,13 +12,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include<unistd.h>
-#include<signal.h>
-
+#include <unistd.h>
+#include <signal.h>
 
 #include "domo_config.h"
-#include "mqtt.h"
 #include "logger.h"
+#include "domo_misc.h"
+#include "mqtt.h"
+
 #include "wiring.h"
 
 #define APP_VERSION	0.1
@@ -26,5 +27,7 @@
 
 
 //struct sigaction old_action;
+//void sig_handler(int signo);
+
 
 #endif

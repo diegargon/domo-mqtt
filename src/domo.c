@@ -14,6 +14,11 @@ int main() {
 	//unsigned long int SubsNcount = 0;
 	GKeyFile *conf = g_key_file_new ();
 	
+	/* Signal */
+	//signal(SIGUSR1, sig_handler);
+	//signal(SIGINT, sig_handler);
+	/**/
+	
 	domoCfg_Init(conf);
 	log_init(APP_NAME, conf);	
 	
@@ -84,10 +89,23 @@ int main() {
 		}
 		usleep(20 * 10000);
 	}
-	//usleep(3000000);
+
 	MQTT_cancel_subs(ctx, pinConf, NumPins);
 	MQTT_Disconnect(ctx);
 	MQTT_destroy(&ctx);
 	
 	return 0;
 }
+
+/*
+void sig_handler(int signo) {
+	log_msg(LOG_DEBUG,"Signal Hadnler called\n");
+	
+	MQTT_cancel_subs(ctx, pinConf, NumPins);
+	MQTT_Disconnect(ctx);
+	MQTT_destroy(&ctx);
+	
+	exit(1);
+}
+*/
+

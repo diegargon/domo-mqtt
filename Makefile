@@ -9,23 +9,33 @@ SRCS = $(wildcard $(SRCS_DIR)/*.c)
 HEADERS_DIR = src
 HEADERS = $(wildcard $(HEADERS_DIR)/*.h)
 OBJS = $(SRCS:.c=.o)
-MAIN = domo
+MAIN_PROG = domo
+
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
 
 
 default: all
 
-all: $(MAIN)
-	@echo Doing $(MAIN)
+all: $(MAIN_PROG)
+	@echo Doing $(MAIN_PROG)
 	
-$(MAIN): $(OBJS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(BUILD_DIR)/$(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
+$(MAIN_PROG): $(OBJS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(BUILD_DIR)/$(MAIN_PROG) $(OBJS) $(LFLAGS) $(LIBS)
 	
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@ $(LFLAGS) $(LIBS)
 clean: 
 	rm -f $(BUILD_DIR)/* $(SRCS_DIR)/*.o $(SRCS_DIR)/*~
+install: all	
+	install -m 750 $(BUILD_DIR)/$(MAIN_PROG) $(DESTDIR)$(PREFIX)/sbin/$(MAIN_PROG)	
+	install -m 755 examples/domo /etc/init.d/domo
+	test -f /etc/domo.conf || install -m 421 examples/domo.conf /etc
 	
-depend:	($SRCS)
-	makedpend $(INCLUDES) $^
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/sbin/$(MAIN_PROG)
+depend:	$(SRCS)
+	makedepend $(INCLUDES) $^
 
 # DO NOT DELETE THIS LINE make depend need it
