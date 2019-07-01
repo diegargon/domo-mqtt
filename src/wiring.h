@@ -4,7 +4,6 @@
 	
 */
 
-
 #if !defined(WIRING_H)
 #define WIRING_H
 
@@ -20,8 +19,6 @@
 #define PULL_OFF  0
 #define PULL_DOWN  1
 #define PULL_UP  2
-
-
 
 typedef struct pinConfig {
 	int pin;
@@ -40,12 +37,9 @@ typedef struct pinConfig {
 	char *logic; // INPUT (PUSHPIN or SWITCHPIB)	
 } pinConfig;
 
-
 #include "mqtt.h"
 
-
 int WiringInit(GKeyFile *conf, pinConfig *pinConf, int pinConfSize);
-
 void WiringPinMonitor(void *context);
 void  printPinConfig(pinConfig *pinConf, int size);
 

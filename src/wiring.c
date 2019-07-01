@@ -8,31 +8,29 @@
 
 #include "wiring.h"
 
-
-
 int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 	int i;
 	int DefQoS;
 	//gsize pinConfSize = 0;
 	
 	if(domoCfg_getInt(conf, "WIRING","SysMode") == 1) {
-		log_msg(LOG_NOTICE, "WiringPI starting in sys mode\n");
+		log_msg(LOG_NOTICE, "WiringPI starting in sys mode");
 		if (wiringPiSetupSys() < 0)
 		{
-			log_msg(LOG_ERR, "oops:	%s\n", strerror (errno)) ;
+			log_msg(LOG_ERR, "oops:	%s", strerror (errno)) ;
 			exit(EXIT_FAILURE);
 		}	
 		
 	} else {
-		log_msg(LOG_NOTICE, "WiringPI starting in normal mode\n");
+		log_msg(LOG_NOTICE, "WiringPI starting in normal mode");
 		if(geteuid() != 0) 
 		{
-			log_msg(LOG_ERR, "Must be root\n");
+			log_msg(LOG_ERR, "Must be root");
 			exit(EXIT_FAILURE);
 		}
 		if (wiringPiSetup() < 0)
 		{
-			log_msg(LOG_ERR, "oops:	%s\n", strerror (errno)) ;
+			log_msg(LOG_ERR, "oops:	%s", strerror (errno)) ;
 			exit(EXIT_FAILURE);
 		}	
 	}
@@ -47,13 +45,13 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		//int pin = domoCfg_getInt(conf, pins[i], "Pin");
 		if (!domoCfg_hasGroup(conf, pins[i])) 
 		{
-			log_msg(LOG_ERR, "Configuration group %s not exist\n", pins[i]);
+			log_msg(LOG_ERR, "Configuration group %s not exist", pins[i]);
 			exit(EXIT_FAILURE);
 		}
 		pinConf[i].pin = domoCfg_getInt(conf, pins[i], "Pin");
 		if (pinConf[i].pin < 0) 
 		{
-			log_msg(LOG_ERR, "pinConf %s has not pin defined\n", pins[i]);
+			log_msg(LOG_ERR, "pinConf %s has not pin defined", pins[i]);
 			exit(EXIT_FAILURE);
 		}
 		
@@ -66,7 +64,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 			pinConf[i].pinMode = PIN_INPUT;
 		
 			// SETUP INTERNAL PULLS		
-			log_msg(LOG_DEBUG, "PIN %d -> INPUT mode settings pulls\n", pinConf[i].pin);
+			log_msg(LOG_DEBUG, "PIN %d -> INPUT mode settings pulls", pinConf[i].pin);
 		
 			if (strcmp(domoCfg_getString(conf, pins[i], "Pull"),"up") == 0)  {			
 				pinConf[i].pullMode = PULL_UP;
@@ -89,7 +87,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 			}
 			digitalWrite(pinConf[i].pin, pinInitState);
 			pinConf[i].pinInitState = pinInitState;							
-			log_msg(LOG_DEBUG, "PIN %d -> Setting inital state to %d\n", pinConf[i].pin, pinInitState);
+			log_msg(LOG_DEBUG, "PIN %d -> Setting inital state to %d", pinConf[i].pin, pinInitState);
 			pinConf[i].pullMode = -1;
 			
 			
@@ -98,7 +96,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 			pinConf[i].pullMode = PULL_OFF;
 			pinConf[i].pinInitState = -1;
 		} else {
-			log_msg(LOG_WARNING, "PIN %d -> Incorrect mode configuration\n", pinConf[i].pin);  
+			log_msg(LOG_WARNING, "PIN %d -> Incorrect mode configuration", pinConf[i].pin);  
 		}
 
 		pinConf[i].pub_topic = domoCfg_getString(conf, pins[i], "Publish");
@@ -113,7 +111,12 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		if (pinConf[i].QoS == -1 ){
 			pinConf[i].QoS = DefQoS;
 		}
-		pinConf[i].pub_retained = domoCfg_getInt(conf, pins[i], "Retained");
+		int retained = domoCfg_getInt(conf, pins[i], "Retained");
+		if(retained == 1) {
+			pinConf[i].pub_retained = 1;
+		} else {
+			pinConf[i].pub_retained = 0;
+		}
 	}
 	
 
@@ -125,23 +128,23 @@ void  printPinConfig(pinConfig *pinConf, int size)
 	int i;
 	
 	for (i = 0; i < size; i++) {
-		log_msg(LOG_DEBUG, "------------------------------------------------------\n");	
-		log_msg(LOG_DEBUG, "[PINCONFIG] Pin: %d\n", pinConf[i].pin);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Mode: %d\n", pinConf[i].pinMode);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Pull Mode: %d\n", pinConf[i].pullMode);	
-		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Initial State: %d\n", pinConf[i].pinInitState);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Prev State: %d\n", pinConf[i].pinPrevState);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Publish topic: %s\n", pinConf[i].pub_topic);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Publish retained: %d\n", pinConf[i].pub_retained);
-		log_msg(LOG_DEBUG, "[PINCONFIG] QoS: %d\n", pinConf[i].QoS);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Publish Value: %s\n", pinConf[i].pubValue);
-		log_msg(LOG_DEBUG, "[PINCONFIG] PinState0: %s\n", pinConf[i].pinState0);
-		log_msg(LOG_DEBUG, "[PINCONFIG] PinState1: %s\n", pinConf[i].pinState1);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Subscribe topic: %s\n", pinConf[i].subs_topic);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Subscribed: %d\n", pinConf[i].subscribed);
-		log_msg(LOG_DEBUG, "[PINCONFIG] Logic: %s\n", pinConf[i].logic);
+		log_msg(LOG_DEBUG, "------------------------------------------------------");	
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pin: %d", pinConf[i].pin);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Mode: %d", pinConf[i].pinMode);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pull Mode: %d", pinConf[i].pullMode);	
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Initial State: %d", pinConf[i].pinInitState);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Pin Prev State: %d", pinConf[i].pinPrevState);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Publish topic: %s", pinConf[i].pub_topic);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Publish retained: %d", pinConf[i].pub_retained);
+		log_msg(LOG_DEBUG, "[PINCONFIG] QoS: %d", pinConf[i].QoS);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Publish Value: %s", pinConf[i].pubValue);
+		log_msg(LOG_DEBUG, "[PINCONFIG] PinState0: %s", pinConf[i].pinState0);
+		log_msg(LOG_DEBUG, "[PINCONFIG] PinState1: %s", pinConf[i].pinState1);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Subscribe topic: %s", pinConf[i].subs_topic);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Subscribed: %d", pinConf[i].subscribed);
+		log_msg(LOG_DEBUG, "[PINCONFIG] Logic: %s", pinConf[i].logic);
 	}
-	log_msg(LOG_DEBUG, "------------------------------------------------------\n");	
+	log_msg(LOG_DEBUG, "------------------------------------------------------");	
 }
 
 
@@ -178,7 +181,7 @@ void WiringPinMonitor(void *context) {
 				((ctx->pinConf[i].pinPrevState == -1) 
 				|| ( ctx->pinConf[i].pinPrevState != digitalRead(ctx->pinConf[i].pin) ) )				
 			) {	
-				log_msg(LOG_INFO, "Pin %d , change or setting state\n", ctx->pinConf[i].pin);
+				log_msg(LOG_INFO, "Pin %d , change or setting state", ctx->pinConf[i].pin);
 				char msg[10];
 				int qos = ctx->DefaultQoS;
 				int retained = 0;
@@ -207,18 +210,13 @@ void WiringPinMonitor(void *context) {
 						sprintf(msg, "%s", ctx->pinConf[i].pinState0);
 					}
 				} else {
-					log_msg(LOG_ERR, "Error, pubValue on pin %d not set\n", ctx->pinConf[i].pin);
+					log_msg(LOG_ERR, "Error, pubValue on pin %d not set", ctx->pinConf[i].pin);
 					exit(EXIT_FAILURE);
 				}
 				MQTT_sendMsg(ctx, ctx->pinConf[i].pub_topic, msg, retained, qos);
 				ctx->pinConf[i].pinPrevState = digitalRead(ctx->pinConf[i].pin);
 			}	
 		}
-		
-		/*
-		*
-		*/
-		
 
 	}
 	

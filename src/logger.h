@@ -27,7 +27,7 @@ LOG_DEBUG	7
  
 
 
-void log_init(char* appname, GKeyFile *conf);
+void log_init(char* appname, GKeyFile *conf, int daemon);
 void log_msg(int level, char * format, ...);
 void log_close();
 

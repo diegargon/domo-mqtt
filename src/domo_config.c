@@ -23,10 +23,12 @@ void domoCfg_Init(GKeyFile *keyfile) {
 }
 
 char* domoCfg_getString(GKeyFile* keyfile, char *section, char *key) {
+	
 	return g_key_file_get_string(keyfile, section, key, NULL);	
 }
 
 char** domoCfg_getStringList(GKeyFile *keyfile, const char *section, const char* key, gsize *length) {
+	
 	return g_key_file_get_string_list(keyfile, section, key, length, NULL);
 }
 
@@ -34,9 +36,9 @@ int domoCfg_getInt(GKeyFile* keyfile, char* section, char* key) {
 	int field = g_key_file_get_integer(keyfile, section, key, NULL);
 	if (field) {
 		return field;
-	} else {
-		return -1;
-	}
+	} 
+	
+	return -1;
 }
 gsize domCfg_getNumElementsList( GKeyFile* keyfile, char* section, char* key ) {
 	gsize size = 0;

@@ -1,14 +1,13 @@
 /*
-	by Diego Garcia (diegargon)
-*/
 
+	Diego Garcia (diegargon) - diego@envigo.net
+
+*/
 #if !defined(MQTT_H)
 #define MQTT_H
 
-
 #include <string.h>
 #include <stdlib.h>
-
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -41,10 +40,8 @@ int MQTT_Init(mqtt_context* ctx, GKeyFile *keyfile);
 void MQTT_printConfig(mqtt_context *ctx);
 int MQTT_connect(void* context);
 int MQTT_Disconnect(mqtt_context *ctx);
-
 void MQTT_subscribe(void* context, char* topic, int QoS );
 void MQTT_subscribeMany(void* context, char **topics, int count, int QoS);
-
 void MQTT_onSubscribeSuccess(void *context, MQTTAsync_successData *response);
 void MQTT_onSubscribeFailure(void *context, MQTTAsync_failureData *response);
 void MQTT_unsubscribe(mqtt_context *ctx, char* topic);
@@ -56,7 +53,6 @@ int MQTT_msgArrived(void* context, char *topicName, int topicLen, MQTTAsync_mess
 void MQTT_onConnectSuccess(void* context, MQTTAsync_successData* response);
 void MQTT_onConnectFailure(void* context, MQTTAsync_failureData* response);
 void MQTT_onSend(void* context, MQTTAsync_successData* response);
-
 int MQTT_cancel_subs(mqtt_context* ctx, pinConfig *pinConf, int size);
 
 #endif

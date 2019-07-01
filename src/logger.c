@@ -6,9 +6,11 @@
 
 int LogToTTY = 0;
 
-void log_init(char *appname, GKeyFile *conf) {
+void log_init(char *appname, GKeyFile *conf, int daemon) {
 
-	LogToTTY = domoCfg_getInt(conf, "LOGGING", "LogToTTY");	
+	if (!daemon) {
+		LogToTTY = domoCfg_getInt(conf, "LOGGING", "LogToTTY");	
+	}
 	int min_level = domoCfg_getInt(conf, "LOGGING", "MIN_LOG_LEVEL");	
 	if (min_level > -1 ) 
 	{
@@ -23,6 +25,7 @@ void log_init(char *appname, GKeyFile *conf) {
 }
 
 void log_close() {
+	log_msg(LOG_DEBUG, "Log close\n");
 	closelog();
 }
 
@@ -51,7 +54,7 @@ void log_msg(int level, char * format, ...) {
 	
 	syslog(level, new_text);
 	if (LogToTTY) {
-		printf("%s", new_text);
+		printf("%s\n", new_text);
 	}
 	
 	va_end(args);

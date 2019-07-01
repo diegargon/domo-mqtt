@@ -15,7 +15,6 @@
 
 */
 
-
 #if !defined(DOMO_CONFIG_H)
 #define DOMO_CONFIG_H
 
@@ -25,8 +24,6 @@
 #include <stdlib.h>
 #include <glib.h>
 #include <string.h>
-
-
 
 void domoCfg_Init(GKeyFile* keyfile);
 char* domoCfg_getString(GKeyFile* keyfile, char *section, char *key);

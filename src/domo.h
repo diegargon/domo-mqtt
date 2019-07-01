@@ -1,7 +1,7 @@
 /*
 
-	Diego Garcia Gonzalez (diegargon)
-	
+	Diego Garcia (diegargon) - diego@envigo.net
+
 */
 
 #if !defined(DOMO_H)
@@ -14,6 +14,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
+#include <getopt.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "domo_config.h"
 #include "logger.h"
@@ -23,11 +29,12 @@
 #include "wiring.h"
 
 #define APP_VERSION	0.1
-#define APP_NAME	"domo"
+#define APP_NAME "domo"
+#define PID_FILE "domo.pid"
 
 
 //struct sigaction old_action;
-//void sig_handler(int signo);
-
+static void daemonize(void);
+void sig_handler(int sig);
 
 #endif

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS  = -Wall -g
+CFLAGS  = -Wall -g  -std=gnu99
 LFLAGS = `pkg-config --cflags glib-2.0`
 LIBS = -lpaho-mqtt3as `pkg-config --libs glib-2.0` -lwiringPi -lwiringPiDev -lpthread -lm
 INCLUDES = 
@@ -30,8 +30,8 @@ clean:
 	rm -f $(BUILD_DIR)/* $(SRCS_DIR)/*.o $(SRCS_DIR)/*~
 install: all	
 	install -m 750 $(BUILD_DIR)/$(MAIN_PROG) $(DESTDIR)$(PREFIX)/sbin/$(MAIN_PROG)	
-	install -m 755 examples/domo /etc/init.d/domo
-	test -f /etc/domo.conf || install -m 421 examples/domo.conf /etc
+	install -m 755 debian/domo.init /etc/init.d/domo
+	test -f /etc/domo.conf || install -m 421 config/domo.conf /etc
 	
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/sbin/$(MAIN_PROG)
