@@ -57,6 +57,7 @@ int MQTT_connect(void* context) {
 
 	mqtt_context *ctx = (mqtt_context *)context;
 
+	ctx->Connected = -1;
 	log_msg(LOG_DEBUG, "MQTT connect called");
 	
     MQTTAsync_SSLOptions ssl_opts = MQTTAsync_SSLOptions_initializer;
@@ -112,11 +113,11 @@ void MQTT_onSend(void* context, MQTTAsync_successData* response)
 
 void MQTT_onConnectFailure(void* context, MQTTAsync_failureData* response)
 {    
-	if (response) {
-		log_msg(LOG_WARNING,"MQTT OnConnectFailure  code: %d, message: %s)",  response->code, response->message);
-	} else {
-		log_msg(LOG_WARNING,"(MQTT OnConnectFailure code:0 )");
-	}
+	mqtt_context *ctx = (mqtt_context *)context;
+	
+	!response->code ? response->code = 0 : response->code;
+	ctx->Connected = 0;
+	log_msg(LOG_WARNING,"MQTT OnConnectFailure  code: %d, message: %s)",  response->code, response->message);
 }
 
 

@@ -72,38 +72,28 @@ int main(int argc, char *argv[]) {
 
 	
 	MQTT_Init(ctx, conf);	
-	MQTT_connect(ctx);
-	
+
 	running = 1;
 
-	while (!MQTTAsync_isConnected(ctx->client) && running ) 
-	{
-		log_msg(LOG_DEBUG,"MQTT_connect:Waiting to connected.");
-		sleep(reconnect_time);
-		if(ctx->Connected == 0) {
-			MQTT_connect(ctx);
-			if (reconnect_time < 5) {
-				reconnect_time ++;
-			}
-		}		
-	}
 	
-	while(running) {
-		WiringPinMonitor(ctx);
-		if(ctx->Connected == 0) {
-			sleep(reconnect_time);
-			if (!MQTTAsync_isConnected(ctx->client)) {
+	while(running) {		
+		if(ctx->Connected < 1 || !MQTTAsync_isConnected(ctx->client)) {
+			//check if we already send a connect request (set to -1) wait and not send another unless onFailure change to 0			
+			if (ctx->Connected != -1) { 				
 				MQTT_connect(ctx);
-				if (reconnect_time < 5) {
-					reconnect_time ++;
-				}
-			}		
+			} 
+			log_msg(LOG_DEBUG,"MQTT_connect:Waiting to connected (code:%d)", ctx->Connected);
+			sleep(reconnect_time);
+			reconnect_time < MAX_RECONNECT_TIME ? reconnect_time++: reconnect_time;
+
 		} else {
 			reconnect_time = RECONNECT_TIME;
+			WiringPinMonitor(ctx);
 		}
+		
 		usleep(20 * 10000);
 	}
-
+	
 	MQTT_cancel_subs(ctx, pinConf, NumPins);
 	MQTT_Disconnect(ctx);
 	MQTT_destroy(&ctx);

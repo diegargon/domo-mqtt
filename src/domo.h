@@ -31,7 +31,7 @@
 #define APP_VERSION	0.1
 #define APP_NAME "domo"
 #define PID_FILE "domo.pid"
-
+#define MAX_RECONNECT_TIME 10
 
 //struct sigaction old_action;
 static void daemonize(void);
