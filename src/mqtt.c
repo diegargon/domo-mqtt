@@ -7,20 +7,20 @@
 
 #include "mqtt.h"
 
-int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
+int MQTT_Init(MQTTContext* ctx, GKeyFile *conf) {
 	
 	int rc = 0;
 	//gsize SubsSize;
 	log_msg(LOG_DEBUG, "MQTT Init called");
 	
-	ctx->MQTT_Broker_Addr = domoCfg_getString(conf, "MQTT", "BrokerAddress");
-	ctx->ClientID = domoCfg_getString(conf, "MQTT","ClientID");
-	ctx->Username = domoCfg_getString(conf, "MQTT","Username");
-	ctx->Password = domoCfg_getString(conf, "MQTT","Password");
-	ctx->DefaultQoS = domoCfg_getInt(conf, "MQTT","DefaultQoS");;	
+	ctx->MQTT_broker_addr = domoCfg_getString(conf, "MQTT", "BrokerAddress");
+	ctx->clientID = domoCfg_getString(conf, "MQTT","ClientID");
+	ctx->username = domoCfg_getString(conf, "MQTT","Username");
+	ctx->password = domoCfg_getString(conf, "MQTT","Password");
+	ctx->defaultQOS = domoCfg_getInt(conf, "MQTT","DefaultQoS");;	
 	//ctx->Topic = domoCfg_getString(conf, "MQTT","Topic");
 	
-	ctx->Connected = 0;
+	ctx->connected = 0;
 	
 	/*
 	char **subs = domoCfg_getStringList(conf, "MQTT", "SubsTopics", &SubsSize);
@@ -33,7 +33,7 @@ int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 	
 	MQTT_printConfig(ctx);
 
-   if( (rc = MQTTAsync_create(&ctx->client, ctx->MQTT_Broker_Addr, ctx->ClientID, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTASYNC_SUCCESS) 
+   if( (rc = MQTTAsync_create(&ctx->client, ctx->MQTT_broker_addr, ctx->clientID, MQTTCLIENT_PERSISTENCE_NONE, MQTT_delivery_complete)) != MQTTASYNC_SUCCESS) 
 	{	
 		log_msg(LOG_ERR, "Error MQTT_CREATE %d", rc);
 		exit(EXIT_FAILURE);
@@ -55,9 +55,9 @@ int MQTT_Init(mqtt_context* ctx, GKeyFile *conf) {
 
 int MQTT_connect(void* context) {
 
-	mqtt_context *ctx = (mqtt_context *)context;
+	MQTTContext *ctx = (MQTTContext *)context;
 
-	ctx->Connected = -1;
+	ctx->connected = -1;
 	log_msg(LOG_DEBUG, "MQTT connect called");
 	
     MQTTAsync_SSLOptions ssl_opts = MQTTAsync_SSLOptions_initializer;
@@ -73,8 +73,8 @@ int MQTT_connect(void* context) {
 	conn_opts.onSuccess = MQTT_onConnectSuccess;
 	conn_opts.onFailure = MQTT_onConnectFailure;
 	conn_opts.context = ctx;
-    conn_opts.username = ctx->Username;
-    conn_opts.password = ctx->Password;
+    conn_opts.username = ctx->username;
+    conn_opts.password = ctx->password;
     conn_opts.ssl = &ssl_opts;
 
 	if ( MQTTAsync_connect(ctx->client, &conn_opts) != MQTTASYNC_SUCCESS) 
@@ -88,23 +88,13 @@ int MQTT_connect(void* context) {
 }
 
 
-void MQTT_printConfig(mqtt_context *ctx)
+void MQTT_printConfig(MQTTContext *ctx)
 {	
-	log_msg(LOG_DEBUG, "MQTT Broker Addr: %s", ctx->MQTT_Broker_Addr);
-	log_msg(LOG_DEBUG, "MQTT ClientID: %s", ctx->ClientID);
-	log_msg(LOG_DEBUG, "MQTT Username: %s", ctx->Username);
-	log_msg(LOG_DEBUG, "MQTT Password: %s", ctx->Password);
-	log_msg(LOG_DEBUG, "MQTT Default QoS: %d", ctx->DefaultQoS);	
-	//log_msg(LOG_DEBUG, "MQTT Topic: %s", ctx->Topic);
-	//log_msg(LOG_DEBUG, "MQTT Retained: %d", ctx->retained);
-	//log_msg(LOG_DEBUG, "MQTT msg: %s", ctx->msg);
-	/*
-	log_msg(LOG_DEBUG, "MQTT SubsSize %d",  ctx->SubsSize);
-	for (int i = 0; i < ctx->SubsSize; i++) {
-		log_msg(LOG_DEBUG, "MQTT Subs values %s", ctx->Subs[i]);
-    }
-	*/
-
+	log_msg(LOG_DEBUG, "MQTT Broker Addr: %s", ctx->MQTT_broker_addr);
+	log_msg(LOG_DEBUG, "MQTT clientID: %s", ctx->clientID);
+	log_msg(LOG_DEBUG, "MQTT username: %s", ctx->username);
+	log_msg(LOG_DEBUG, "MQTT password: %s", ctx->password);
+	log_msg(LOG_DEBUG, "MQTT Default QoS: %d", ctx->defaultQOS);	
 }
 void MQTT_onSend(void* context, MQTTAsync_successData* response)
 {	
@@ -113,41 +103,32 @@ void MQTT_onSend(void* context, MQTTAsync_successData* response)
 
 void MQTT_onConnectFailure(void* context, MQTTAsync_failureData* response)
 {    
-	mqtt_context *ctx = (mqtt_context *)context;
+	MQTTContext *ctx = (MQTTContext *)context;
 	
 	!response->code ? response->code = 0 : response->code;
-	ctx->Connected = 0;
+	ctx->connected = 0;
 	log_msg(LOG_WARNING,"MQTT OnConnectFailure  code: %d, message: %s)",  response->code, response->message);
 }
 
 
 void MQTT_onConnectSuccess(void* context, MQTTAsync_successData* response)
 {
-    mqtt_context *ctx = (mqtt_context *)context;
+    MQTTContext *ctx = (MQTTContext *)context;
 	
 	log_msg(LOG_INFO, "MQTT successful conected (OnConnect)");
 		
-	ctx->Connected = 1;
-	/*
-    
-	if (ctx->SubsSize > 1) {
-		MQTT_subscribeMany(context); 
-	} else if (ctx->SubsSize == 1) {		
-		MQTT_subscribe(context);
-	}
-	*/
-
-	}
+	ctx->connected = 1;
+}
 
 void MQTT_subscribe(void* context, char* topic, int QoS )
 {
-	mqtt_context *ctx = (mqtt_context *)context;
-	
+	MQTTContext *ctx = (MQTTContext *)context;
+		
     MQTTAsync_responseOptions ropts = MQTTAsync_responseOptions_initializer;
 	ropts.onSuccess = MQTT_onSubscribeSuccess;
 	ropts.onFailure = MQTT_onSubscribeFailure;
     ropts.context = ctx;
-    log_msg(LOG_INFO, "Subscribing to topic %s for client %s using QoS %d", topic, ctx->ClientID, QoS);
+    log_msg(LOG_INFO, "Subscribing to topic %s for client %s using QoS %d", topic, ctx->clientID, QoS);
 
     MQTTAsync_subscribe(ctx->client, topic, QoS, &ropts);
 	
@@ -156,7 +137,7 @@ void MQTT_subscribe(void* context, char* topic, int QoS )
 void MQTT_subscribeMany(void* context, char **topics, int count, int QoS)
 {
 	int i;	
-	mqtt_context *ctx = (mqtt_context *)context;
+	MQTTContext *ctx = (MQTTContext *)context;
 	
     log_msg(LOG_INFO, "Subscribing many topics called");
 	
@@ -170,78 +151,49 @@ void MQTT_subscribeMany(void* context, char **topics, int count, int QoS)
 }
 
 void MQTT_onSubscribeSuccess(void *context, MQTTAsync_successData *response) {
-	log_msg(LOG_INFO, "Subscribe success");
-	//mqtt_context *ctx = (mqtt_context *)context;
+	//char *topic = (char*) context;
+	log_msg(LOG_INFO, "Subscribe success");	
+	//log_msg(LOG_INFO, "Subscribe success: %d", response->alt.qos);
+	//MQTTContext *ctx = (MQTTContext *)context;
+	
 }
 void MQTT_onSubscribeFailure(void *context, MQTTAsync_failureData *response) {
 	log_msg(LOG_INFO, "Subscribe fail [ %d ] -> %s ", response->code, response->message);
 }
 
-void MQTT_unsubscribe(mqtt_context *ctx, char* topic) {
+void MQTT_unsubscribe(MQTTContext *ctx, char* topic) {
 	log_msg(LOG_DEBUG, "Unsubscribe topic %s called", topic);
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.context = ctx->client;	
 	MQTTAsync_unsubscribe (ctx->client, topic, &opts);
 }
 
-void MQTT_unsubscribeMany(mqtt_context *ctx, int count, char **topics) {
+void MQTT_unsubscribeMany(MQTTContext *ctx, int count, char **topics) {
 	log_msg(LOG_DEBUG, "UnsubscribeMany called");
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.context = ctx->client;	
 	MQTTAsync_unsubscribeMany (ctx->client, count, topics, &opts);	
 }
 
+void MQTT_delivery_complete(void *context, MQTTAsync_token token) {
+	log_msg(LOG_DEBUG, "MQTT delivery complete");
+}
+
 int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
 {
-	mqtt_context *ctx = (mqtt_context *)context;
-    int i;
+	MQTTContext *ctx = (MQTTContext *)context;
     char* payloadptr;
 	
-	log_msg(LOG_DEBUG, "Message arrived");	
-		
-		
-/*
-	for (i = 0; i < ctx->NumPins; i++) {
-		log_msg(LOG_DEBUG,"PINCONF %d\n", ctx->pinConf[i].pin);
-	}
-	
-	for (i = 0; i < ctx->NumPins; i++) {
-		log_msg(LOG_DEBUG,"PINCONF %d, %s\n", i, ctx->pinConf[i].subs_topic);
-	}	
-*/
-	for (i = 0; i < ctx->NumPins; i++) 
-	{
-		if ( ctx->pinConf[i].subs_topic != NULL && topicName != NULL) 
-		{
-			if ( (strcmp(topicName, ctx->pinConf[i].subs_topic) == 0) ) 
-			{
-				log_msg(LOG_DEBUG,"PINCONF, %d, %d",i , ctx->pinConf[i].pin);
-				if ( (ctx->pinConf[i].logic != NULL)   
-					&& (strcmp(ctx->pinConf[i].logic , "PushPin") == 0)
-				)
-				{
-					log_msg(LOG_DEBUG,"PINCONF, %d, %d PushPin",i , ctx->pinConf[i].pin);
-					int pinState = digitalRead(ctx->pinConf[i].pin);
-					digitalWrite(ctx->pinConf[i].pin, !pinState);
-					usleep(100000);
-					digitalWrite(ctx->pinConf[i].pin, pinState);
-				} else {
-					log_msg(LOG_DEBUG,"PINCONF, %d, %d SwitchPin",i , ctx->pinConf[i].pin);
-					int pinState = digitalRead(ctx->pinConf[i].pin);
-					digitalWrite(ctx->pinConf[i].pin, !pinState);				
-				}
-			}
-		}
-	}
-
 	payloadptr = message->payload;
 	char *msg = malloc(message->payloadlen);
-	for(i=0; i<message->payloadlen; i++) {
+	for(int i=0; i<message->payloadlen; i++) {
 		msg[i] = *payloadptr++;
 	}
 		
 	log_msg(LOG_DEBUG, "Message arrived - Topic: %s Message: %s", topicName, msg);
 	free(msg);
+
+	domo_subs_msg(topicName, ctx->pinConf, ctx->numPins);
 
 	//MQTT_sendMsg(context, "test2", "hello", 0, 1);
 	
@@ -253,13 +205,13 @@ int MQTT_msgArrived(void *context, char *topicName, int topicLen, MQTTAsync_mess
 
 void MQTT_connLost(void *context, char *cause)
 {
-	mqtt_context *ctx = (mqtt_context *)context;
+	MQTTContext *ctx = (MQTTContext *)context;
 	
     log_msg(LOG_WARNING,"\nConnection lost\t cause: %s", cause ? cause : "unknown");		
-	ctx->Connected = 0;
+	ctx->connected = 0;
 	
 	/* Mark as unsubcribre on connection lost */
-	for (int i=0; i < ctx->NumPins ; i++) 
+	for (int i=0; i < ctx->numPins ; i++) 
 	{
 		if ( (ctx->pinConf[i].pinMode == OUTPUT) && (ctx->pinConf[i].subs_topic != NULL) && (ctx->pinConf[i].subscribed == 1) )
 		{			
@@ -272,7 +224,7 @@ void MQTT_connLost(void *context, char *cause)
 int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos) {	
     int rc;
 	
-	mqtt_context *ctx = (mqtt_context *)context;
+	MQTTContext *ctx = (MQTTContext *)context;
 
 	log_msg(LOG_DEBUG, "Sending message - topic: %s, msg: %s, retained: %d, qos: %d", topic, msg, retained, qos);	
 	
@@ -295,40 +247,11 @@ int MQTT_sendMsg(void* context, char* topic, char* msg, int retained, int qos) {
 	return 0;
 }
 
-void MQTT_disconnect_success(void *context, MQTTAsync_successData *response) {	
-	mqtt_context *ctx = (mqtt_context *)context;
-	
-	log_msg(LOG_NOTICE, "MQTT Client discconect success");
-	
-	ctx->Connected = 0;
-	//MQTT_destroy(&ctx);
-}
 
-void MQTT_disconnect_failure(void *context, MQTTAsync_failureData *response) {
-	log_msg(LOG_WARNING, "MQTT Client discconect failure");
-	//mqtt_context *ctx = (mqtt_context *)context;
-	//MQTT_destroy(&ctx);
-}
-
-int MQTT_cancel_subs(mqtt_context* ctx, pinConfig *pinConf, int size) {	
-	int i;
-
-	log_msg(LOG_DEBUG, "MQTT cancel subscriptions called");
-	
-	for (i=0; i < size ; i++)  {
-		if ( (pinConf[i].subscribed == 1) )
-		{
-			MQTT_unsubscribe(ctx, pinConf[i].subs_topic );
-			pinConf[i].subscribed = 0; //TODO doit when successfull unsubscribe					
-		}
-	
-	}
-
-	return 0;
-	
-}
-int MQTT_Disconnect(mqtt_context* ctx) {
+int MQTT_Disconnect(MQTTContext* ctx) {
 	log_msg(LOG_DEBUG, "MQTT Disconnect called");
+	
+	MQTT_cancel_subs(ctx, ctx->pinConf, ctx->numPins);
 	
     MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
 
@@ -340,24 +263,57 @@ int MQTT_Disconnect(mqtt_context* ctx) {
 
 }
 
-void MQTT_destroy(mqtt_context **ptr) 
+void MQTT_disconnect_success(void *context, MQTTAsync_successData *response) {	
+	MQTTContext *ctx = (MQTTContext *)context;
+	
+	log_msg(LOG_NOTICE, "MQTT Client discconect success");
+
+	ctx->connected = 0;
+	MQTT_destroy(&ctx);
+}
+
+void MQTT_disconnect_failure(void *context, MQTTAsync_failureData *response) {
+	log_msg(LOG_WARNING, "MQTT Client discconect failure");
+	MQTTContext *ctx = (MQTTContext *)context;
+	MQTT_destroy(&ctx);
+	exit(EXIT_FAILURE);
+}
+
+void MQTT_destroy(MQTTContext **ptr) 
 {
 	log_msg(LOG_DEBUG, "MQTT destroy called");
-	mqtt_context *ctx = (mqtt_context *)*ptr;
+	MQTTContext *ctx = (MQTTContext *)*ptr;
 	
 	if (ctx) 
 	{
 		MQTTAsync_destroy(&ctx->client);
-		g_free(ctx->MQTT_Broker_Addr);
+		g_free(ctx->MQTT_broker_addr);
 
-		g_free(ctx->Username);
-		g_free(ctx->Password);
-		g_free(ctx->ClientID);		
-		//TODO: pinConf? how?
-		//g_free(ctx->Topic);
-		//g_free(ctx->msg);
+		g_free(ctx->username);
+		g_free(ctx->password);
+		g_free(ctx->clientID);		
+		//TODO: pinConf?
+
 		g_free(ctx);
 		*ptr = NULL;
 	}
+	
+}
+
+int MQTT_cancel_subs(MQTTContext* ctx, PinConfig *pinConf, int size) {	
+	int i;
+
+	log_msg(LOG_DEBUG, "MQTT cancel subscriptions called");
+	
+	for (i=0; i < size ; i++)  {
+		if ( (pinConf[i].subscribed == 1) )
+		{
+			MQTT_unsubscribe(ctx, pinConf[i].subs_topic );
+			pinConf[i].subscribed = 0; //TODO doit when successfull unsubscribe?					
+		}
+	
+	}
+
+	return 0;
 	
 }

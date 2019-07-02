@@ -8,13 +8,13 @@
 
 #include "wiring.h"
 
-int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
+int WiringInit (GKeyFile *conf, PinConfig *pinConf, int pinConfSize) {
 	int i;
 	int DefQoS;
 	//gsize pinConfSize = 0;
 	
 	if(domoCfg_getInt(conf, "WIRING","SysMode") == 1) {
-		log_msg(LOG_NOTICE, "WiringPI starting in sys mode");
+		log_msg(LOG_INFO, "WiringPI starting in sys mode");
 		if (wiringPiSetupSys() < 0)
 		{
 			log_msg(LOG_ERR, "oops:	%s", strerror (errno)) ;
@@ -22,7 +22,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		}	
 		
 	} else {
-		log_msg(LOG_NOTICE, "WiringPI starting in normal mode");
+		log_msg(LOG_INFO, "WiringPI starting in normal mode");
 		if(geteuid() != 0) 
 		{
 			log_msg(LOG_ERR, "Must be root");
@@ -35,7 +35,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 		}	
 	}
 	
-	DefQoS = domoCfg_getInt(conf, "MQTT","DefaultQoS");
+	DefQoS = domoCfg_getInt(conf, "MQTT","defaultQOS");
 	
 	//char **pins = domoCfg_getStringList(conf, "WIRING", "PinConf", &pinConfSize);
 	char **pins = domoCfg_getStringList(conf, "WIRING", "PinConf", NULL);
@@ -123,7 +123,7 @@ int WiringInit (GKeyFile *conf, pinConfig *pinConf, int pinConfSize) {
 	return 0;
 }	
 
-void  printPinConfig(pinConfig *pinConf, int size) 
+void  LogPinConfig(PinConfig *pinConf, int size) 
 {
 	int i;
 	
@@ -148,76 +148,3 @@ void  printPinConfig(pinConfig *pinConf, int size)
 }
 
 
-
-void WiringPinMonitor(void *context) {
-	int i;
-	
-	mqtt_context *ctx = (mqtt_context *)context;
-	
-	//log_msg(LOG_DEBUG, "WiringLoop\n");
-	
-	for (i=0; i < ctx->NumPins ; i++) 
-	{
-		//log_msg(LOG_DEBUG, "PIN %d -> status %d\n",  pinConf[i].pin, digitalRead(pinConf[i].pin));
-		
-		/*
-		*	OUTPUT SUBSCRIBE
-		*/
-		
-		if ( (ctx->pinConf[i].pinMode == OUTPUT) && (ctx->pinConf[i].subs_topic != NULL) && (ctx->pinConf[i].subscribed == 0) )
-		{
-			MQTT_subscribe(context, ctx->pinConf[i].subs_topic, ctx->pinConf[i].QoS );
-			ctx->pinConf[i].subscribed = 1; //TODO doit when successfull subscribe			
-		}
-		
-		/*
-		* INPUT PIN PUBLISH ON CHANGE
-		*/
-		
-		if ( (ctx->pinConf[i].pinMode == INPUT) && (ctx->pinConf[i].pub_topic != NULL) )
-		{
-			
-			if ( ( ctx->pinConf[i].pub_topic != NULL) && 
-				((ctx->pinConf[i].pinPrevState == -1) 
-				|| ( ctx->pinConf[i].pinPrevState != digitalRead(ctx->pinConf[i].pin) ) )				
-			) {	
-				log_msg(LOG_INFO, "Pin %d , change or setting state", ctx->pinConf[i].pin);
-				char msg[10];
-				int qos = ctx->DefaultQoS;
-				int retained = 0;
-				
-				if( ctx->pinConf[i].QoS != -1 && 
-					((ctx->pinConf[i].QoS == 0) || (ctx->pinConf[i].QoS == 1))
-				)
-				{
-					qos = ctx->pinConf[i].QoS;
-				}
-				if(ctx->pinConf[i].pub_retained != -1 && 
-					((ctx->pinConf[i].pub_retained == 0) || (ctx->pinConf[i].pub_retained == 1))
-					)
-				{
-					retained = ctx->pinConf[i].pub_retained;
-				}					
-					
-				
-				if ( strcmp(ctx->pinConf[i].pubValue, "PinState") == 0)
-				{
-					sprintf(msg, "%d", digitalRead(ctx->pinConf[i].pin) );
-				} else if ( strcmp(ctx->pinConf[i].pubValue, "PinStateVar") == 0 ) {
-					if (digitalRead(ctx->pinConf[i].pin)) {
-						sprintf(msg, "%s", ctx->pinConf[i].pinState1);
-					} else {
-						sprintf(msg, "%s", ctx->pinConf[i].pinState0);
-					}
-				} else {
-					log_msg(LOG_ERR, "Error, pubValue on pin %d not set", ctx->pinConf[i].pin);
-					exit(EXIT_FAILURE);
-				}
-				MQTT_sendMsg(ctx, ctx->pinConf[i].pub_topic, msg, retained, qos);
-				ctx->pinConf[i].pinPrevState = digitalRead(ctx->pinConf[i].pin);
-			}	
-		}
-
-	}
-	
-}

@@ -23,9 +23,8 @@
 
 #include "domo_config.h"
 #include "logger.h"
-#include "domo_misc.h"
 #include "mqtt.h"
-
+#include "domo_misc.h"
 #include "wiring.h"
 
 #define APP_VERSION	0.1
@@ -33,8 +32,6 @@
 #define PID_FILE "domo.pid"
 #define MAX_RECONNECT_TIME 10
 
-//struct sigaction old_action;
-static void daemonize(void);
 void sig_handler(int sig);
 
 #endif

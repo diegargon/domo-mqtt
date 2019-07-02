@@ -20,12 +20,13 @@
 #define PULL_DOWN  1
 #define PULL_UP  2
 
-typedef struct pinConfig {
+typedef struct PinConfig {
 	int pin;
 	int pinMode;
 	int pullMode;
 	int pinInitState;
 	int pinPrevState;
+	int notify;
 	char *pub_topic;
 	int pub_retained;
 	int QoS;
@@ -35,12 +36,11 @@ typedef struct pinConfig {
 	char *subs_topic;
 	int subscribed;
 	char *logic; // INPUT (PUSHPIN or SWITCHPIB)	
-} pinConfig;
+} PinConfig;
 
 #include "mqtt.h"
 
-int WiringInit(GKeyFile *conf, pinConfig *pinConf, int pinConfSize);
-void WiringPinMonitor(void *context);
-void  printPinConfig(pinConfig *pinConf, int size);
+int WiringInit(GKeyFile *conf, PinConfig *pinConf, int pinConfSize);
+void  LogPinConfig(PinConfig *pinConf, int size);
 
 #endif

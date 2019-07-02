@@ -4,11 +4,11 @@
 
 */
 
-
 #include "domo.h"
 
-static int running = 0;
+static void daemonize(void);
 
+static int running = 0;
 static char *pid_file_name = NULL;
 static int pid_fd = -1;
 
@@ -17,14 +17,14 @@ int main(int argc, char *argv[]) {
 	int reconnect_time = RECONNECT_TIME;
 	int value, option_index = 0;
 	int daemon = 0;
+	//unsigned long int SubsNcount = 0;
+	
 	static struct option long_options[] = {
 		{"help", no_argument, 0, 'h'},
 		{"daemon", no_argument, 0, 'd'},
 		{NULL, 0, 0, 0}
 	};	
-	//unsigned long int SubsNcount = 0;
-	GKeyFile *conf = g_key_file_new ();
-	
+
 	while ((value = getopt_long(argc, argv, "p:dh", long_options, &option_index)) != -1) {
 		switch (value) {
 			case 'p':
@@ -44,65 +44,57 @@ int main(int argc, char *argv[]) {
 		}
 	}	
 	
-	if(daemon) {
-		daemonize();
-	}
-
+	(daemon) ? daemonize() : 0;
+	
 	/* Signal */
 	signal(SIGUSR1, sig_handler);
 	signal(SIGINT, sig_handler);
 	/**/
 
+	GKeyFile *conf = g_key_file_new ();
 	domoCfg_Init(conf);
 	log_init(APP_NAME, conf, daemon);	
 	
-	//pinConfig *pinConf = g_malloc0(sizeof(struct pinConfig));
-	int NumPins = domCfg_getNumElementsList( conf, "WIRING", "PinConf" );	
-	pinConfig pinConf[NumPins];
+	log_msg(LOG_INFO, "Program %s started by user %d", argv[0], getuid());
+		
+	int numPins = domCfg_getNumElementsList( conf, "WIRING", "PinConf" );	
+	PinConfig pinConf[numPins];
 		
 		
-	WiringInit(conf, pinConf, NumPins);
-	printPinConfig(pinConf, NumPins);
+	WiringInit(conf, pinConf, numPins);
+	LogPinConfig(pinConf, numPins);
 	
 	//SubsNcount = domCfg_getNumElementsList( conf, "MQTT", "SubsTopics" );		
-	//mqtt_context *ctx = g_malloc0(sizeof(struct mqtt_context) +  (sizeof(char *) * SubsNcount));
-	mqtt_context *ctx = g_malloc0(sizeof(struct mqtt_context) + (sizeof(struct pinConfig) * NumPins) );
-	ctx->NumPins = NumPins;
+	
+	MQTTContext *ctx = g_malloc0(sizeof(struct MQTTContext) + (sizeof(struct PinConfig) * numPins) );
+	ctx->numPins = numPins;
 	ctx->pinConf = pinConf;
-
 	
 	MQTT_Init(ctx, conf);	
-
 	running = 1;
-
 	
 	while(running) {		
-		if(ctx->Connected < 1 || !MQTTAsync_isConnected(ctx->client)) {
+		if(ctx->connected < 1 || !MQTTAsync_isConnected(ctx->client)) {
 			//check if we already send a connect request (set to -1) wait and not send another unless onFailure change to 0			
-			if (ctx->Connected != -1) { 				
-				MQTT_connect(ctx);
-			} 
-			log_msg(LOG_DEBUG,"MQTT_connect:Waiting to connected (code:%d)", ctx->Connected);
+			(ctx->connected != -1) ? MQTT_connect(ctx) : 0;			
+			log_msg(LOG_DEBUG,"MQTT_connect:Waiting to connected (code:%d)", ctx->connected);
 			sleep(reconnect_time);
 			reconnect_time < MAX_RECONNECT_TIME ? reconnect_time++: reconnect_time;
 
 		} else {
-			reconnect_time = RECONNECT_TIME;
-			WiringPinMonitor(ctx);
+			reconnect_time > RECONNECT_TIME ? reconnect_time = RECONNECT_TIME :0;			
+			DomoPinMonitor(ctx);
 		}
 		
 		usleep(20 * 10000);
 	}
-	
-	MQTT_cancel_subs(ctx, pinConf, NumPins);
+		
 	MQTT_Disconnect(ctx);
-	MQTT_destroy(&ctx);
 	log_close();
-	if (daemon && pid_file_name != NULL) free(pid_file_name);
+	(daemon && pid_file_name != NULL) ? free(pid_file_name) : 0;
 	
 	return EXIT_SUCCESS;
 }
-
 
 static void daemonize() {
 		
@@ -116,18 +108,17 @@ static void daemonize() {
 	} else if (pid > 0) {
 		exit(EXIT_SUCCESS);
 	}
-
+	
 	/* The child process becomes leader */
-	if (setsid() < 0) {
-		exit(EXIT_FAILURE);
-	}
+	(setsid() < 0) ? exit(EXIT_FAILURE) : 0;
+	
 
 	/* Ignore signal sent from child to parent process */
 	signal(SIGCHLD, SIG_IGN);
 
 	/* Fork off for the second time*/
+	
 	pid = fork();
-
 
 	if (pid < 0) {
 		exit(EXIT_FAILURE);
@@ -148,9 +139,7 @@ static void daemonize() {
 	stdout = fopen("/dev/null", "w+");
 	stderr = fopen("/dev/null", "w+");
 
-	if(pid_file_name == NULL ) {
-		pid_file_name = PID_FILE;
-	}
+	(pid_file_name == NULL ) ? pid_file_name = PID_FILE : 0;	
 	
 	/* Try to write PID of daemon to lockfile */
 	if (pid_file_name != NULL)

@@ -5,9 +5,9 @@
 	Config file:
 	[MQTT]
 	BrokerAddress="ssl://xxx:8883"
-	Username=xxx
-	Password=xxxº
-	ClientID=ExampleClient
+	username=xxx
+	password=xxxº
+	clientID=ExampleClient
 	QOS=1
 
 
